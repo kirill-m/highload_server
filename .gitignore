@@ -2,7 +2,7 @@
 /.idea/*
 .DS_Store
 /build
-
+*.class
 *.jar
 
 workspace.xml

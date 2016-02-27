@@ -31,24 +31,34 @@ public class Server implements Runnable {
     private void readInput() throws IOException {
         System.out.println("Someone connected to me!");
         BufferedReader bufferedReader = new BufferedReader(new InputStreamReader(inputStream));
-        String str = null;
+        String str;
         while(true) {
             str = bufferedReader.readLine();
+            System.out.println(str);
             if(str == null || str.length() == 0) {
                 break;
             }
         }
-        System.out.println("Input:\n" + str);
     }
 
     private void writeOutput() throws IOException {
+        FileInputStream fis = new FileInputStream(System.getProperty("user.dir") + "/src/static/index.html");
+        BufferedReader bufferedReader = new BufferedReader(new InputStreamReader(fis));
+        String strLine;
         try {
+            StringBuilder sb = new StringBuilder();
+
+            while((strLine = bufferedReader.readLine())!= null)
+            {
+                sb.append(strLine);
+            }
+
             String response = "<html><head><body><h1>Server answer</h1></body></head></html>";
 
-            outputStream.write(response.getBytes());
+            outputStream.write(sb.toString().getBytes());
             outputStream.flush();
 
-            //socket.close();
+            socket.close();
 
         } catch (IOException e) {
             e.printStackTrace();

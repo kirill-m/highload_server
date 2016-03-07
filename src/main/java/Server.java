@@ -1,3 +1,5 @@
+import javax.imageio.ImageIO;
+import java.awt.image.BufferedImage;
 import java.io.*;
 import java.net.Socket;
 
@@ -17,7 +19,6 @@ public class Server implements Runnable {
             String input = readInput();
             String path = getPath(input);
             writeOutput(path);
-            System.out.println("INPUT!!!" + input);
         } catch (IOException e) {
             e.printStackTrace();
         }
@@ -47,31 +48,46 @@ public class Server implements Runnable {
 
     private void writeOutput(String contentName) throws IOException {
         String path = System.getProperty("user.dir") + "/src/static/";
-
+        String extension = contentName.substring(contentName.indexOf(".") + 1);
 
         if (contentName.length() == 1)
             path +="index.html";
         else
             path += contentName;
 
-
         try {
-            FileInputStream fis = new FileInputStream(path);
-            BufferedReader bufferedReader = new BufferedReader(new InputStreamReader(fis));
-            String strLine;
-            StringBuilder sb = new StringBuilder();
+            switch (extension) {
+                case "html":
+                case "txt": {
+                    FileInputStream fis = new FileInputStream(path);
+                    BufferedReader bufferedReader = new BufferedReader(new InputStreamReader(fis));
+                    String strLine;
+                    StringBuilder sb = new StringBuilder();
 
-            while((strLine = bufferedReader.readLine())!= null)
-            {
-                sb.append(strLine);
+                    while ((strLine = bufferedReader.readLine()) != null) {
+                        sb.append(strLine);
+                    }
+
+                    outputStream.write(sb.toString().getBytes());
+                    outputStream.write(getHeader().getBytes());
+                    outputStream.flush();
+                    break;
+                }
+                case "png":
+                case "gif":
+                case "jpg":
+                case "jpeg": {
+                    BufferedImage image = ImageIO.read(new File(path));
+                    ByteArrayOutputStream baos = new ByteArrayOutputStream();
+                    ImageIO.write(image, extension, baos);
+                    baos.flush();
+                    byte[] result = baos.toByteArray();
+                    outputStream.write(result);
+                    outputStream.write(getHeader().getBytes());
+                    outputStream.flush();
+                    break;
+                }
             }
-
-            String response = "<html><head><body><h1>Server answer</h1></body></head></html>";
-
-            outputStream.write(sb.toString().getBytes());
-            outputStream.flush();
-
-            socket.close();
 
         } catch (IOException e) {
             e.printStackTrace();
@@ -101,6 +117,17 @@ public class Server implements Runnable {
         System.out.println("It asks this:\n" + s);
         System.out.println("\n" + "Work Directory:\n" + result + "\n");
         return result;
+    }
+
+    private String getHeader() {
+        String result = "HTTP/1.1 200 OK\r\n" +
+                "Server: JSS\r\n"+
+                "Content-Type: " + "TODO: Type" + "\r\n" +
+                "Content-Length: " + "TODO: Length" + "\r\n" +
+                "Connection: close\r\n\r\n";
+
+        return result;
+
     }
 
 }

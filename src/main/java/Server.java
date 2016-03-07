@@ -47,67 +47,32 @@ public class Server implements Runnable {
     }
 
     private void writeOutput(String contentName) throws IOException {
-        String path = System.getProperty("user.dir") + "/src/static/";
+        String path = System.getProperty("user.dir") + "/src/static";
         String extension = contentName.substring(contentName.indexOf(".") + 1);
+        byte[] content = null;
+        byte[] header = null;
         if (contentName.length() == 1)
-            path +="index.html";
+            path +="/index.html";
         else
             path += contentName;
 
         try {
-            switch (extension) {
-                case "html":
-                case "css":
-                case "js":
-                case "": {
-                    FileInputStream fis = new FileInputStream(path);
-                    BufferedReader bufferedReader = new BufferedReader(new InputStreamReader(fis));
-                    String strLine;
-                    StringBuilder sb = new StringBuilder();
-
-                    while ((strLine = bufferedReader.readLine()) != null) {
-                        sb.append(strLine);
-                    }
-
-                    outputStream.write(sb.toString().getBytes());
-                    outputStream.write(getHeader(extension, sb.toString().getBytes().length).getBytes());
-                    outputStream.flush();
-                    break;
-                }
-                case "png":
-                case "gif":
-                case "jpg":
-                case "jpeg": {
-                    BufferedImage image = ImageIO.read(new File(path));
-                    ByteArrayOutputStream baos = new ByteArrayOutputStream();
-                    ImageIO.write(image, extension, baos);
-                    baos.flush();
-                    byte[] result = baos.toByteArray();
-                    outputStream.write(result);
-                    outputStream.write(getHeader(extension, result.length).getBytes());
-                    outputStream.flush();
-                    break;
-                }
-                case "/": {
-                    FileInputStream fis = new FileInputStream(path);
-                    BufferedReader bufferedReader = new BufferedReader(new InputStreamReader(fis));
-                    String strLine;
-                    StringBuilder sb = new StringBuilder();
-
-                    while ((strLine = bufferedReader.readLine()) != null) {
-                        sb.append(strLine);
-                    }
-
-                    outputStream.write(sb.toString().getBytes());
-                    outputStream.write(getHeader(extension, sb.toString().getBytes().length).getBytes());
-                    outputStream.flush();
-                    break;
-                }
+            content = getContent(path, extension);
+            if (content == null) {
+                content = "<!DOCTYPE html><html><head></head><body><h1>Error 404. Not found</h1></body></html>".getBytes();
+                header =  ("HTTP/1.1 404 Not Found\r\n" +
+                        "Server: MyServer\r\n"+
+                        "Content-Type: text/html\r\n" +
+                        "Connection: close\r\n\r\n").getBytes();
+            } else {
+                header = getHeader(extension, content.length).getBytes();
             }
-
         } catch (IOException e) {
             e.printStackTrace();
         } finally {
+            outputStream.write(header);
+            outputStream.write(content);
+            outputStream.flush();
             socket.close();
         }
 
@@ -139,10 +104,16 @@ public class Server implements Runnable {
         String contentType = null;
         switch (extension) {
             case "png":
+                contentType = "image/png";
+                break;
             case "jpg":
-            case "jpeg":
-            case "gif":
                 contentType = "image/jpeg";
+                break;
+            case "jpeg":
+                contentType = "image/jpeg";
+                break;
+            case "gif":
+                contentType = "image/gif";
                 break;
             case "/":
             case "html":
@@ -152,10 +123,12 @@ public class Server implements Runnable {
                 contentType = "text/css";
                 break;
             case "js":
-                contentType = "text/js";
+                contentType = "text/javascript";
                 break;
+            case "swf":
+                contentType = "application/x-shockwave-flash";
         }
-        String result = "\nHTTP/1.1 200 OK\r\n" +
+        String result = "HTTP/1.1 200 OK\r\n" +
                 "Server: MyServer\r\n"+
                 "Content-Type: " + contentType + "\r\n" +
                 "Content-Length: " + length + "\r\n" +
@@ -163,6 +136,78 @@ public class Server implements Runnable {
 
         return result;
 
+    }
+
+    private byte[] getContent(String path, String extension) throws IOException {
+        byte[] content = null;
+        System.out.println("PATH!!! " + path);
+        path = tryEncode(path);
+        System.out.println("PATH!!! " + path);
+        switch (extension) {
+            case "html":
+            case "css":
+            case "js":
+            case "/":
+            case "": {
+                FileInputStream fis = new FileInputStream(path);
+                BufferedReader bufferedReader = new BufferedReader(new InputStreamReader(fis));
+                String strLine;
+                StringBuilder stringBuilder = new StringBuilder();
+
+                while ((strLine = bufferedReader.readLine()) != null) {
+                    stringBuilder.append(strLine);
+                }
+                content = stringBuilder.toString().getBytes("Cp1251");
+                break;
+            }
+            case "png":
+            case "gif":
+            case "jpg":
+            case "jpeg": {
+                BufferedImage image = ImageIO.read(new File(path));
+                ByteArrayOutputStream baos = new ByteArrayOutputStream();
+                ImageIO.write(image, extension, baos);
+                baos.flush();
+                content = baos.toByteArray();
+                break;
+            }
+            case "swf": {
+                InputStream inputStream = null;
+                BufferedInputStream bis = null;
+
+                try{
+                    inputStream = new FileInputStream(path);
+                    bis = new BufferedInputStream(inputStream);
+
+                    int numByte = bis.available();
+                    content = new byte[numByte];
+
+                    bis.read(content);
+
+                }catch(Exception e){
+                    e.printStackTrace();
+                }finally{
+                    if(inputStream!=null)
+                        inputStream.close();
+                    if(bis!=null)
+                        bis.close();
+                }
+            }
+        }
+        return content;
+    }
+
+    public static String tryEncode(String str) throws UnsupportedEncodingException {
+        int i = str.indexOf('%');
+
+        while (i != -1){
+            byte bs[] = new byte[1];
+            bs[0] = (byte) Integer.parseInt(str.substring(i+1, i+3), 16);
+
+            str = str.replaceFirst("%..", new String(bs,"UTF8"));
+            i = str.indexOf('%');
+        }
+        return str;
     }
 
 }

@@ -49,7 +49,6 @@ public class Server implements Runnable {
     private void writeOutput(String contentName) throws IOException {
         String path = System.getProperty("user.dir") + "/src/static/";
         String extension = contentName.substring(contentName.indexOf(".") + 1);
-
         if (contentName.length() == 1)
             path +="index.html";
         else
@@ -58,7 +57,9 @@ public class Server implements Runnable {
         try {
             switch (extension) {
                 case "html":
-                case "txt": {
+                case "css":
+                case "js":
+                case "": {
                     FileInputStream fis = new FileInputStream(path);
                     BufferedReader bufferedReader = new BufferedReader(new InputStreamReader(fis));
                     String strLine;
@@ -69,7 +70,7 @@ public class Server implements Runnable {
                     }
 
                     outputStream.write(sb.toString().getBytes());
-                    outputStream.write(getHeader().getBytes());
+                    outputStream.write(getHeader(extension, sb.toString().getBytes().length).getBytes());
                     outputStream.flush();
                     break;
                 }
@@ -83,7 +84,22 @@ public class Server implements Runnable {
                     baos.flush();
                     byte[] result = baos.toByteArray();
                     outputStream.write(result);
-                    outputStream.write(getHeader().getBytes());
+                    outputStream.write(getHeader(extension, result.length).getBytes());
+                    outputStream.flush();
+                    break;
+                }
+                case "/": {
+                    FileInputStream fis = new FileInputStream(path);
+                    BufferedReader bufferedReader = new BufferedReader(new InputStreamReader(fis));
+                    String strLine;
+                    StringBuilder sb = new StringBuilder();
+
+                    while ((strLine = bufferedReader.readLine()) != null) {
+                        sb.append(strLine);
+                    }
+
+                    outputStream.write(sb.toString().getBytes());
+                    outputStream.write(getHeader(extension, sb.toString().getBytes().length).getBytes());
                     outputStream.flush();
                     break;
                 }
@@ -119,11 +135,30 @@ public class Server implements Runnable {
         return result;
     }
 
-    private String getHeader() {
-        String result = "HTTP/1.1 200 OK\r\n" +
-                "Server: JSS\r\n"+
-                "Content-Type: " + "TODO: Type" + "\r\n" +
-                "Content-Length: " + "TODO: Length" + "\r\n" +
+    private String getHeader(String extension, int length) {
+        String contentType = null;
+        switch (extension) {
+            case "png":
+            case "jpg":
+            case "jpeg":
+            case "gif":
+                contentType = "image/jpeg";
+                break;
+            case "/":
+            case "html":
+                contentType = "text/html";
+                break;
+            case "css":
+                contentType = "text/css";
+                break;
+            case "js":
+                contentType = "text/js";
+                break;
+        }
+        String result = "\nHTTP/1.1 200 OK\r\n" +
+                "Server: MyServer\r\n"+
+                "Content-Type: " + contentType + "\r\n" +
+                "Content-Length: " + length + "\r\n" +
                 "Connection: close\r\n\r\n";
 
         return result;

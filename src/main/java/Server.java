@@ -17,8 +17,21 @@ public class Server implements Runnable {
         try {
             System.out.println("from new thread");
             String input = readInput();
-            String path = getPath(input);
-            writeOutput(path);
+
+            String requestType = getRequestType(input);
+            switch (requestType) {
+                case "GET": {
+                    String path = getPath(input);
+                    writeOutput(path);
+                    break;
+                }
+                case "POST":
+                    writeOutputPost();
+                    break;
+                case "HEAD":
+                    
+            }
+
         } catch (IOException e) {
             e.printStackTrace();
         }
@@ -47,35 +60,52 @@ public class Server implements Runnable {
     }
 
     private void writeOutput(String contentName) throws IOException {
-        String path = System.getProperty("user.dir") + "/src/static";
-        String extension = contentName.substring(contentName.indexOf(".") + 1);
         byte[] content = null;
         byte[] header = null;
-        if (contentName.length() == 1)
-            path +="/index.html";
-        else
-            path += contentName;
 
-        try {
-            content = getContent(path, extension);
-            if (content == null) {
-                content = "<!DOCTYPE html><html><head></head><body><h1>Error 404. Not found</h1></body></html>".getBytes();
-                header =  ("HTTP/1.1 404 Not Found\r\n" +
-                        "Server: MyServer\r\n"+
-                        "Content-Type: text/html\r\n" +
-                        "Connection: close\r\n\r\n").getBytes();
-            } else {
-                header = getHeader(extension, content.length).getBytes();
-            }
-        } catch (IOException e) {
-            e.printStackTrace();
-        } finally {
-            outputStream.write(header);
-            outputStream.write(content);
-            outputStream.flush();
-            socket.close();
+            String path = System.getProperty("user.dir") + "/src/static";
+            String extension = contentName.substring(contentName.indexOf(".") + 1);
+
+            if (contentName.length() == 1)
+                path +="/index.html";
+            else
+                path += contentName;
+
+            try {
+                content = getContent(path, extension);
+                if (content == null) {
+                    content = "<!DOCTYPE html><html><head></head><body><h1>Error 404. Not found</h1></body></html>".getBytes();
+                    header =  ("HTTP/1.1 404 Not Found\r\n" +
+                            "Server: MyServer\r\n"+
+                            "Content-Type: text/html\r\n" +
+                            "Connection: close\r\n\r\n").getBytes();
+                } else {
+                    header = getHeader(extension, content.length).getBytes();
+                }
+            } catch (IOException e) {
+                e.printStackTrace();
+            } finally {
+                outputStream.write(header);
+                outputStream.write(content);
+                outputStream.flush();
+                socket.close();
+
         }
 
+    }
+
+    private void writeOutputPost() throws IOException {
+        byte[] content = null;
+        byte[] header = null;
+        content = "<!DOCTYPE html><html><head></head><body><h1>Error 405. Method Not allowed</h1></body></html>".getBytes();
+        header =  ("HTTP/1.1 405 Method Not Allowed\r\n" +
+                "Server: MyServer\r\n"+
+                "Content-Type: text/html\r\n" +
+                "Connection: close\r\n\r\n").getBytes();
+        outputStream.write(header);
+        outputStream.write(content);
+        outputStream.flush();
+        socket.close();
     }
 
     private String getPath(String s) {
@@ -151,6 +181,7 @@ public class Server implements Runnable {
             case "": {
                 FileInputStream fis = new FileInputStream(path);
                 BufferedReader bufferedReader = new BufferedReader(new InputStreamReader(fis));
+                new BufferedReader(new InputStreamReader(fis));
                 String strLine;
                 StringBuilder stringBuilder = new StringBuilder();
 
@@ -173,24 +204,24 @@ public class Server implements Runnable {
             }
             case "swf": {
                 InputStream inputStream = null;
-                BufferedInputStream bis = null;
+                BufferedInputStream bufferedInputStream = null;
 
                 try{
                     inputStream = new FileInputStream(path);
-                    bis = new BufferedInputStream(inputStream);
+                    bufferedInputStream = new BufferedInputStream(inputStream);
 
-                    int numByte = bis.available();
+                    int numByte = bufferedInputStream.available();
                     content = new byte[numByte];
 
-                    bis.read(content);
+                    bufferedInputStream.read(content);
 
                 }catch(Exception e){
                     e.printStackTrace();
                 }finally{
                     if(inputStream!=null)
                         inputStream.close();
-                    if(bis!=null)
-                        bis.close();
+                    if(bufferedInputStream!=null)
+                        bufferedInputStream.close();
                 }
             }
         }
@@ -204,10 +235,14 @@ public class Server implements Runnable {
             byte bs[] = new byte[1];
             bs[0] = (byte) Integer.parseInt(str.substring(i+1, i+3), 16);
 
-            str = str.replaceFirst("%..", new String(bs,"UTF8"));
+            str = str.replaceFirst("%..", new String(bs,"UTF-8"));
             i = str.indexOf('%');
         }
         return str;
+    }
+
+    private String  getRequestType(String request) {
+        return request.substring(0, request.indexOf(' '));
     }
 
 }

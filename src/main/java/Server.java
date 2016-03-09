@@ -2,15 +2,20 @@ import javax.imageio.ImageIO;
 import java.awt.image.BufferedImage;
 import java.io.*;
 import java.net.Socket;
+import java.util.Date;
 
 /**
  * Created by kirill on 23.02.16.
  */
+
+//TODO: encode cyrillic
+
 public class Server implements Runnable {
 
     private InputStream inputStream;
     private Socket socket;
     private OutputStream outputStream;
+    private String requestType;
 
     @Override
     public void run() {
@@ -18,8 +23,9 @@ public class Server implements Runnable {
             System.out.println("from new thread");
             String input = readInput();
 
-            String requestType = getRequestType(input);
+            requestType = getRequestType(input);
             switch (requestType) {
+                case "HEAD":
                 case "GET": {
                     String path = getPath(input);
                     writeOutput(path);
@@ -27,9 +33,6 @@ public class Server implements Runnable {
                 }
                 case "POST":
                     writeOutputPost();
-                    break;
-                case "HEAD":
-                    
             }
 
         } catch (IOException e) {
@@ -86,7 +89,8 @@ public class Server implements Runnable {
                 e.printStackTrace();
             } finally {
                 outputStream.write(header);
-                outputStream.write(content);
+                if (requestType.equals("GET"))
+                    outputStream.write(content);
                 outputStream.flush();
                 socket.close();
 
@@ -159,6 +163,7 @@ public class Server implements Runnable {
                 contentType = "application/x-shockwave-flash";
         }
         String result = "HTTP/1.1 200 OK\r\n" +
+                "Date:" + new Date() + "\r\n" +
                 "Server: MyServer\r\n"+
                 "Content-Type: " + contentType + "\r\n" +
                 "Content-Length: " + length + "\r\n" +
@@ -194,14 +199,6 @@ public class Server implements Runnable {
             case "png":
             case "gif":
             case "jpg":
-            case "jpeg": {
-                BufferedImage image = ImageIO.read(new File(path));
-                ByteArrayOutputStream baos = new ByteArrayOutputStream();
-                ImageIO.write(image, extension, baos);
-                baos.flush();
-                content = baos.toByteArray();
-                break;
-            }
             case "swf": {
                 InputStream inputStream = null;
                 BufferedInputStream bufferedInputStream = null;

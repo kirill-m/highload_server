@@ -6,10 +6,11 @@ import java.net.Socket;
  * Created by kirill on 23.02.16.
  */
 public class Main {
+    public static final int DEFAULT_PORT = 8080;
 
     public static void main(String[] args) throws IOException {
 
-        ServerSocket serverSocket = new ServerSocket(9000);
+        ServerSocket serverSocket = new ServerSocket(DEFAULT_PORT);
 
         while (true) {
             Socket socket = serverSocket.accept();

@@ -61,30 +61,6 @@ public class Server implements Runnable {
             }
         }
 
-
-
-
-
-//        try {
-//            System.out.println("from new thread");
-//            String input = readInput();
-//
-//            requestType = getRequestType(input);
-//            switch (requestType) {
-//                case "HEAD":
-//                case "GET": {
-//                    String path = getPath(input);
-//                    writeOutput(path);
-//                    break;
-//                }
-//                case "POST":
-//                    writeOutputPost();
-//            }
-//
-//        } catch (IOException e) {
-//            e.printStackTrace();
-//        }
-
     }
 
     public Server(Socket socket) throws IOException {
@@ -111,7 +87,6 @@ public class Server implements Runnable {
         while(true) {
             str = bufferedReader.readLine();
             sb.append(str);
-            System.out.println(str);
             if(str == null || str.length() == 0) {
                 break;
             }
@@ -123,9 +98,7 @@ public class Server implements Runnable {
         byte[] content = null;
         byte[] header = null;
 
-        String path = Main.directory; //"/Users/kirill/IdeaProjects/highload/src/static";
-        //String path = System.getProperty("user.dir") + "/src/static";
-
+        String path = Main.directory;
 
         File file = new File(path+contentName);
         if (file.isDirectory()) {
@@ -156,15 +129,7 @@ public class Server implements Runnable {
 
         String extension = contentName.substring(contentName.lastIndexOf(".") + 1);
 
-
-
-//        if (contentName.length() == 1)
-//            path +="/index.html";
-//        else
         path += contentName;
-        //file = new File(path);
-        //System.out.println("INDEX EXISTS!!! " + (!file.isDirectory() && file.exists()));
-
 
         try {
             content = getContent(path, extension);
@@ -222,16 +187,12 @@ public class Server implements Runnable {
         if (result.indexOf('?') != -1) {
             result = result.substring(0,result.indexOf('?'));
         }
-        //result = tryEncode(result);
         result = URLDecoder.decode(result, "utf-8");
-        System.out.println("RESULT!!!" + result);
         if (result.indexOf('.') == -1){
             if (result.charAt(result.length()-1) != '/')
                 result += "/";
         }
 
-        System.out.println("It asks this:\n" + s);
-        System.out.println("\n" + "Work Directory:\n" + result + "\n");
         return result;
     }
 
@@ -280,9 +241,6 @@ public class Server implements Runnable {
             return null;
         }
         byte[] content = null;
-//        System.out.println("PATH!!! " + path);
-//        path = tryEncode(path);
-        System.out.println("PATH!!! " + path);
         switch (extension) {
             case "html":
             case "css":
@@ -290,18 +248,6 @@ public class Server implements Runnable {
             case "/":
             case "txt":
             case "": {
-//                FileInputStream fis = new FileInputStream(path);
-//                BufferedReader bufferedReader = new BufferedReader(new InputStreamReader(fis));
-//                new BufferedReader(new InputStreamReader(fis));
-//                String strLine;
-//                StringBuilder stringBuilder = new StringBuilder();
-//
-//                while ((strLine = bufferedReader.readLine()) != null) {
-//                    stringBuilder.append(strLine);
-//                }
-//                content = stringBuilder.toString().getBytes("Cp1251");
-//                break;
-
 
                 InputStream inStream = null;
                 BufferedInputStream bis = null;
@@ -352,21 +298,7 @@ public class Server implements Runnable {
                 }
             }
         }
-        System.out.println("CONTENT!!!" + content);
         return content;
-    }
-
-    public static String tryEncode(String str) throws UnsupportedEncodingException {
-        int i = str.indexOf('%');
-
-        while (i != -1){
-            byte bs[] = new byte[1];
-            bs[0] = (byte) Integer.parseInt(str.substring(i+1, i+3), 16);
-
-            str = str.replaceFirst("%..", new String(bs,"UTF-8"));
-            i = str.indexOf('%');
-        }
-        return str;
     }
 
     private String  getRequestType(String request) {

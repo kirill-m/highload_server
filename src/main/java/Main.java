@@ -29,12 +29,14 @@ public class Main {
     public static void main(String[] args) throws IOException, ParseException {
 
         CommandLineParser parser = new DefaultParser();
-
         CommandLine commandLine = parser.parse(options, args);
 
         directory = commandLine.getOptionValue("r", directory);
         int port = Integer.parseInt(commandLine.getOptionValue("p", "8080"));
+        int cpus = Integer.parseInt(commandLine.getOptionValue("c", "2"));
         System.out.println(directory + " " + port);
+
+        //ThreadPoolExecutor executor = (ThreadPoolExecutor) Executors.newFixedThreadPool(2 * cpus + 1);
 
         for (int i = 0; i < workers; ++i) {
             Server s = new Server();
@@ -46,10 +48,6 @@ public class Main {
 
         while (true) {
             Socket socket = serverSocket.accept();
-//            System.out.println("Main thread");
-//            new Thread(new Server(socket)).start();
-//
-//            System.out.println("Main thread stopped");
 
             Server s = null;
             synchronized (threads) {
@@ -63,8 +61,6 @@ public class Main {
                     s.setSocket(socket);
                 }
             }
-
-
         }
     }
 

@@ -128,12 +128,25 @@ public class Server implements Runnable {
 
 
         File file = new File(path+contentName);
-        System.out.println(file.isDirectory());
-        if (file.isDirectory()){
+        if (file.isDirectory()) {
             if (contentName.charAt(contentName.length()-1) != '/') {
                 contentName += "/index.html";
             }else{
                 contentName += "index.html";
+            }
+            file = new File(path+contentName);
+            if (!file.isDirectory() && !file.exists()) {
+                content = "<!DOCTYPE html><html><head></head><body><h1>Error 403. Forbidden</h1></body></html>".getBytes();
+                header =  ("HTTP/1.1 403 Forbidden\r\n" +
+                        "Server: MyServer\r\n"+
+                        "Content-Type: text/html\r\n" +
+                        "Connection: close\r\n\r\n").getBytes();
+                outputStream.write(header);
+                if (requestType.equals("GET"))
+                    outputStream.write(content);
+                outputStream.flush();
+                socket.close();
+                return;
             }
         }else{
             if (contentName.charAt(contentName.length()-1) == '/') {
@@ -148,7 +161,10 @@ public class Server implements Runnable {
 //        if (contentName.length() == 1)
 //            path +="/index.html";
 //        else
-            path += contentName;
+        path += contentName;
+        //file = new File(path);
+        //System.out.println("INDEX EXISTS!!! " + (!file.isDirectory() && file.exists()));
+
 
         try {
             content = getContent(path, extension);

@@ -1,8 +1,7 @@
-import javax.imageio.ImageIO;
-import java.awt.image.BufferedImage;
 import java.io.*;
 import java.net.Socket;
 import java.util.Date;
+import java.util.Vector;
 
 /**
  * Created by kirill on 23.02.16.
@@ -18,26 +17,72 @@ public class Server implements Runnable {
     private String requestType;
 
     @Override
-    public void run() {
-        try {
-            System.out.println("from new thread");
-            String input = readInput();
+    public synchronized void run() {
 
-            requestType = getRequestType(input);
-            switch (requestType) {
-                case "HEAD":
-                case "GET": {
-                    String path = getPath(input);
-                    writeOutput(path);
-                    break;
+        while(true) {
+            if (socket == null) {
+                /* nothing to do */
+                try {
+                    wait();
+                } catch (InterruptedException e) {
+                    continue;
                 }
-                case "POST":
-                    writeOutputPost();
             }
+            try {
+                this.inputStream = socket.getInputStream();
+                this.outputStream = socket.getOutputStream();
+                System.out.println("from new thread");
+                String input = readInput();
 
-        } catch (IOException e) {
-            e.printStackTrace();
+                requestType = getRequestType(input);
+                switch (requestType) {
+                    case "HEAD":
+                    case "GET": {
+                        String path = getPath(input);
+                        writeOutput(path);
+                        break;
+                    }
+                    case "POST":
+                        writeOutputPost();
+                }
+
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+            socket = null;
+            Vector pool = Main.threads;
+            synchronized (pool) {
+                if (pool.size() >= Main.workers) {
+                    return;
+                } else {
+                    pool.addElement(this);
+                }
+            }
         }
+
+
+
+
+
+//        try {
+//            System.out.println("from new thread");
+//            String input = readInput();
+//
+//            requestType = getRequestType(input);
+//            switch (requestType) {
+//                case "HEAD":
+//                case "GET": {
+//                    String path = getPath(input);
+//                    writeOutput(path);
+//                    break;
+//                }
+//                case "POST":
+//                    writeOutputPost();
+//            }
+//
+//        } catch (IOException e) {
+//            e.printStackTrace();
+//        }
 
     }
 
@@ -45,6 +90,17 @@ public class Server implements Runnable {
         this.socket = socket;
         this.inputStream = socket.getInputStream();
         this.outputStream = socket.getOutputStream();
+    }
+
+    public Server() throws IOException {
+        socket = null;
+//        this.inputStream = socket.getInputStream();
+//        this.outputStream = socket.getOutputStream();
+    }
+
+    synchronized void setSocket(Socket socket) {
+        this.socket = socket;
+        notify();
     }
 
     private String readInput() throws IOException {

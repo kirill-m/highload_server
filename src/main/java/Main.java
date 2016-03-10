@@ -24,16 +24,17 @@ public class Main {
 
     public static final int DEFAULT_PORT = 8080;
 
+    static String directory = "/Users/kirill/IdeaProjects/highload/src/static";
+
     public static void main(String[] args) throws IOException, ParseException {
 
         CommandLineParser parser = new DefaultParser();
 
         CommandLine commandLine = parser.parse(options, args);
 
-        String directory = commandLine.getOptionValue("r", "static");
-        String host = commandLine.getOptionValue("w", "127.0.0.1");
+        directory = commandLine.getOptionValue("r", directory);
         int port = Integer.parseInt(commandLine.getOptionValue("p", "8080"));
-        System.out.println(directory + " " + host + " " + port);
+        System.out.println(directory + " " + port);
 
         for (int i = 0; i < workers; ++i) {
             Server s = new Server();
@@ -41,7 +42,7 @@ public class Main {
             threads.addElement(s);
         }
 
-        ServerSocket serverSocket = new ServerSocket(DEFAULT_PORT);
+        ServerSocket serverSocket = new ServerSocket(port);
 
         while (true) {
             Socket socket = serverSocket.accept();

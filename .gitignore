@@ -1,5 +1,6 @@
 /local.properties
 /.idea/*
+/http-test-suite
 .DS_Store
 /build
 *.class

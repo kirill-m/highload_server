@@ -1,5 +1,6 @@
 import java.io.*;
 import java.net.Socket;
+import java.net.URLDecoder;
 import java.util.Date;
 import java.util.Vector;
 
@@ -31,19 +32,19 @@ public class Server implements Runnable {
             try {
                 this.inputStream = socket.getInputStream();
                 this.outputStream = socket.getOutputStream();
-                System.out.println("from new thread");
                 String input = readInput();
-
-                requestType = getRequestType(input);
-                switch (requestType) {
-                    case "HEAD":
-                    case "GET": {
-                        String path = getPath(input);
-                        writeOutput(path);
-                        break;
+                if (!input.equals("null")) {
+                    requestType = getRequestType(input);
+                    switch (requestType) {
+                        case "HEAD":
+                        case "GET": {
+                            String path = getPath(input);
+                            writeOutput(path);
+                            break;
+                        }
+                        case "POST":
+                            writeOutputPost();
                     }
-                    case "POST":
-                        writeOutputPost();
                 }
 
             } catch (IOException e) {
@@ -122,33 +123,52 @@ public class Server implements Runnable {
         byte[] content = null;
         byte[] header = null;
 
-            String path = System.getProperty("user.dir") + "/src/static";
-            String extension = contentName.substring(contentName.indexOf(".") + 1);
+        String path = Main.directory; //"/Users/kirill/IdeaProjects/highload/src/static";
+        //String path = System.getProperty("user.dir") + "/src/static";
 
-            if (contentName.length() == 1)
-                path +="/index.html";
-            else
-                path += contentName;
 
-            try {
-                content = getContent(path, extension);
-                if (content == null) {
-                    content = "<!DOCTYPE html><html><head></head><body><h1>Error 404. Not found</h1></body></html>".getBytes();
-                    header =  ("HTTP/1.1 404 Not Found\r\n" +
-                            "Server: MyServer\r\n"+
-                            "Content-Type: text/html\r\n" +
-                            "Connection: close\r\n\r\n").getBytes();
-                } else {
-                    header = getHeader(extension, content.length).getBytes();
-                }
-            } catch (IOException e) {
-                e.printStackTrace();
-            } finally {
-                outputStream.write(header);
-                if (requestType.equals("GET"))
-                    outputStream.write(content);
-                outputStream.flush();
-                socket.close();
+        File file = new File(path+contentName);
+        System.out.println(file.isDirectory());
+        if (file.isDirectory()){
+            if (contentName.charAt(contentName.length()-1) != '/') {
+                contentName += "/index.html";
+            }else{
+                contentName += "index.html";
+            }
+        }else{
+            if (contentName.charAt(contentName.length()-1) == '/') {
+                contentName = contentName.substring(0, contentName.length() - 1);
+            }
+        }
+
+        String extension = contentName.substring(contentName.lastIndexOf(".") + 1);
+
+
+
+//        if (contentName.length() == 1)
+//            path +="/index.html";
+//        else
+            path += contentName;
+
+        try {
+            content = getContent(path, extension);
+            if (content == null) {
+                content = "<!DOCTYPE html><html><head></head><body><h1>Error 404. Not found</h1></body></html>".getBytes();
+                header =  ("HTTP/1.1 404 Not Found\r\n" +
+                        "Server: MyServer\r\n"+
+                        "Content-Type: text/html\r\n" +
+                        "Connection: close\r\n\r\n").getBytes();
+            } else {
+                header = getHeader(extension, content.length).getBytes();
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
+        } finally {
+            outputStream.write(header);
+            if (requestType.equals("GET"))
+                outputStream.write(content);
+            outputStream.flush();
+            socket.close();
 
         }
 
@@ -168,11 +188,14 @@ public class Server implements Runnable {
         socket.close();
     }
 
-    private String getPath(String s) {
+    private String getPath(String s) throws UnsupportedEncodingException {
         String result = null;
         int i = 0;
-
-        int pathIndex = "GET ".length();
+        int pathIndex = 0;
+        if (requestType.equals("GET"))
+            pathIndex = "GET ".length();
+        else
+            pathIndex = "HEAD ".length();
 
         for (i = pathIndex; i < s.length(); i++) {
             if (s.charAt(i) == ' ') break;
@@ -180,6 +203,12 @@ public class Server implements Runnable {
 
         result = s.substring(pathIndex, i);
 
+        if (result.indexOf('?') != -1) {
+            result = result.substring(0,result.indexOf('?'));
+        }
+        //result = tryEncode(result);
+        result = URLDecoder.decode(result, "utf-8");
+        System.out.println("RESULT!!!" + result);
         if (result.indexOf('.') == -1){
             if (result.charAt(result.length()-1) != '/')
                 result += "/";
@@ -230,31 +259,60 @@ public class Server implements Runnable {
     }
 
     private byte[] getContent(String path, String extension) throws IOException {
+        File f = new File(path);
+        if(!f.exists()) {
+            return null;
+        }
         byte[] content = null;
-        System.out.println("PATH!!! " + path);
-        path = tryEncode(path);
+//        System.out.println("PATH!!! " + path);
+//        path = tryEncode(path);
         System.out.println("PATH!!! " + path);
         switch (extension) {
             case "html":
             case "css":
             case "js":
             case "/":
+            case "txt":
             case "": {
-                FileInputStream fis = new FileInputStream(path);
-                BufferedReader bufferedReader = new BufferedReader(new InputStreamReader(fis));
-                new BufferedReader(new InputStreamReader(fis));
-                String strLine;
-                StringBuilder stringBuilder = new StringBuilder();
+//                FileInputStream fis = new FileInputStream(path);
+//                BufferedReader bufferedReader = new BufferedReader(new InputStreamReader(fis));
+//                new BufferedReader(new InputStreamReader(fis));
+//                String strLine;
+//                StringBuilder stringBuilder = new StringBuilder();
+//
+//                while ((strLine = bufferedReader.readLine()) != null) {
+//                    stringBuilder.append(strLine);
+//                }
+//                content = stringBuilder.toString().getBytes("Cp1251");
+//                break;
 
-                while ((strLine = bufferedReader.readLine()) != null) {
-                    stringBuilder.append(strLine);
+
+                InputStream inStream = null;
+                BufferedInputStream bis = null;
+
+                try{
+                    inStream = new FileInputStream(path);
+                    bis = new BufferedInputStream(inStream);
+
+                    int numByte = bis.available();
+                    content = new byte[numByte];
+
+                    bis.read(content);
+
+                }catch(Exception e){
+                    e.printStackTrace();
+                }finally{
+                    if(inStream!=null)
+                        inStream.close();
+                    if(bis!=null)
+                        bis.close();
                 }
-                content = stringBuilder.toString().getBytes("Cp1251");
                 break;
             }
             case "png":
             case "gif":
             case "jpg":
+            case "jpeg":
             case "swf": {
                 InputStream inputStream = null;
                 BufferedInputStream bufferedInputStream = null;
@@ -278,6 +336,7 @@ public class Server implements Runnable {
                 }
             }
         }
+        System.out.println("CONTENT!!!" + content);
         return content;
     }
 

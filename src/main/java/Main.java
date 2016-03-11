@@ -4,6 +4,8 @@ import java.io.IOException;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.util.Vector;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ThreadPoolExecutor;
 
 /**
  * Created by kirill on 23.02.16.
@@ -36,7 +38,7 @@ public class Main {
         int cpus = Integer.parseInt(commandLine.getOptionValue("c", "2"));
         System.out.println(directory + " " + port);
 
-        //ThreadPoolExecutor executor = (ThreadPoolExecutor) Executors.newFixedThreadPool(2 * cpus + 1);
+        ThreadPoolExecutor executor = (ThreadPoolExecutor) Executors.newFixedThreadPool(2 * cpus + 1);
 
         for (int i = 0; i < workers; ++i) {
             Server s = new Server();
@@ -48,6 +50,10 @@ public class Main {
 
         while (true) {
             Socket socket = serverSocket.accept();
+
+            Server ws = new Server();
+            ws.setSocket(socket);
+            //executor.execute(ws);
 
             Server s = null;
             synchronized (threads) {

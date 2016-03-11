@@ -247,30 +247,6 @@ public class Server implements Runnable {
             case "js":
             case "/":
             case "txt":
-            case "": {
-
-                InputStream inStream = null;
-                BufferedInputStream bis = null;
-
-                try{
-                    inStream = new FileInputStream(path);
-                    bis = new BufferedInputStream(inStream);
-
-                    int numByte = bis.available();
-                    content = new byte[numByte];
-
-                    bis.read(content);
-
-                }catch(Exception e){
-                    e.printStackTrace();
-                }finally{
-                    if(inStream!=null)
-                        inStream.close();
-                    if(bis!=null)
-                        bis.close();
-                }
-                break;
-            }
             case "png":
             case "gif":
             case "jpg":

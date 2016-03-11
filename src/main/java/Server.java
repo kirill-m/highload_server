@@ -130,7 +130,7 @@ public class Server implements Runnable {
         String extension = contentName.substring(contentName.lastIndexOf(".") + 1);
 
         path += contentName;
-
+        System.out.println(path);
         try {
             content = getContent(path, extension);
             if (content == null) {
@@ -192,7 +192,6 @@ public class Server implements Runnable {
             if (result.charAt(result.length()-1) != '/')
                 result += "/";
         }
-
         return result;
     }
 

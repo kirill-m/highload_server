@@ -2,7 +2,7 @@ import java.io.*;
 import java.net.Socket;
 import java.net.URLDecoder;
 import java.util.Date;
-import java.util.Vector;
+import java.util.LinkedList;
 
 /**
  * Created by kirill on 23.02.16.
@@ -10,55 +10,56 @@ import java.util.Vector;
 
 //TODO: encode cyrillic
 
-public class Server implements Runnable {
+public class Server extends Thread implements Runnable {
 
     private InputStream inputStream;
     private Socket socket;
     private OutputStream outputStream;
     private String requestType;
-
+    private LinkedList<Socket> requests = Main.requests;
     @Override
     public synchronized void run() {
 
         while(true) {
-            if (socket == null) {
-                /* nothing to do */
-                try {
-                    wait();
-                } catch (InterruptedException e) {
-                    continue;
-                }
-            }
-            try {
-                this.inputStream = socket.getInputStream();
-                this.outputStream = socket.getOutputStream();
-                String input = readInput();
-                if (!input.equals("null")) {
-                    requestType = getRequestType(input);
-                    switch (requestType) {
-                        case "HEAD":
-                        case "GET": {
-                            String path = getPath(input);
-                            writeOutput(path);
-                            break;
-                        }
-                        case "POST":
-                            writeOutputPost();
-                    }
-                }
 
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
-            socket = null;
-            Vector pool = Main.threads;
-            synchronized (pool) {
-                if (pool.size() >= Main.workers) {
-                    return;
+            synchronized (requests) {
+                if (requests.isEmpty()) {
+                    try {
+                        requests.wait();
+                    } catch (InterruptedException e) {
+                        e.printStackTrace();
+                    }
                 } else {
-                    pool.addElement(this);
+                    if (socket == null) {
+                        Socket skt = requests.removeFirst();
+                        this.setSocket(skt);
+
+                        try {
+                            this.inputStream = socket.getInputStream();
+                            this.outputStream = socket.getOutputStream();
+                            String input = readInput();
+                            if (!input.equals("null")) {
+                                requestType = getRequestType(input);
+                                switch (requestType) {
+                                    case "HEAD":
+                                    case "GET": {
+                                        String path = getPath(input);
+                                        writeOutput(path);
+                                        break;
+                                    }
+                                    case "POST":
+                                        writeOutputPost();
+                                }
+                            }
+                            this.setSocketNull();
+                        } catch (IOException e) {
+                            e.printStackTrace();
+                        }
+                    }
+
                 }
             }
+
         }
 
     }
@@ -77,7 +78,12 @@ public class Server implements Runnable {
 
     synchronized void setSocket(Socket socket) {
         this.socket = socket;
-        notify();
+        //notify();
+    }
+
+    synchronized void setSocketNull() {
+        this.socket = null;
+        //notify();
     }
 
     private String readInput() throws IOException {
@@ -121,7 +127,7 @@ public class Server implements Runnable {
                 socket.close();
                 return;
             }
-        }else{
+        } else {
             if (contentName.charAt(contentName.length()-1) == '/') {
                 contentName = contentName.substring(0, contentName.length() - 1);
             }
@@ -150,7 +156,6 @@ public class Server implements Runnable {
                 outputStream.write(content);
             outputStream.flush();
             socket.close();
-
         }
 
     }

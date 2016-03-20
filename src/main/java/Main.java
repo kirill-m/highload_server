@@ -3,6 +3,7 @@ import org.apache.commons.cli.*;
 import java.io.IOException;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.util.LinkedList;
 import java.util.Vector;
 
 /**
@@ -20,48 +21,48 @@ public class Main {
 
     static int workers = 5;
 
-    static Vector threads = new Vector();
+    static Vector<Server> threads = new Vector<>();
+
+    static LinkedList<Socket> requests = new LinkedList<>();
 
     public static final int DEFAULT_PORT = 8080;
 
     static String directory = "/Users/kirill/IdeaProjects/highload/src/static";
 
-    public static void main(String[] args) throws IOException, ParseException {
+    static void enqueue(Socket s) {
+        synchronized (requests) {
+            requests.add(s);
+            requests.notify();
+            System.out.println("QUEUE SIZE " + requests.size());
+        }
+    }
+
+    public static void main(String[] args) throws IOException, ParseException, InterruptedException {
 
         CommandLineParser parser = new DefaultParser();
         CommandLine commandLine = parser.parse(options, args);
 
         directory = commandLine.getOptionValue("r", directory);
-        int port = Integer.parseInt(commandLine.getOptionValue("p", "8080"));
+        int port = Integer.parseInt(commandLine.getOptionValue("p", String.valueOf(DEFAULT_PORT)));
         int cpus = Integer.parseInt(commandLine.getOptionValue("c", "2"));
         System.out.println(directory + " " + port);
 
         //ThreadPoolExecutor executor = (ThreadPoolExecutor) Executors.newFixedThreadPool(2 * cpus + 1);
-
+        workers = cpus * 2 + 1;
         for (int i = 0; i < workers; ++i) {
             Server s = new Server();
-            (new Thread(s, "worker #"+i)).start();
+            s.start();
+            //(new Thread(s, "worker #"+i)).start();
             threads.addElement(s);
         }
+
 
         ServerSocket serverSocket = new ServerSocket(port);
 
         while (true) {
             Socket socket = serverSocket.accept();
             //executor.execute(ws);
-
-            Server s = null;
-            synchronized (threads) {
-                if (threads.isEmpty()) {
-                    Server ws = new Server();
-                    ws.setSocket(socket);
-                    (new Thread(ws, "additional worker")).start();
-                } else {
-                    s = (Server) threads.elementAt(0);
-                    threads.removeElementAt(0);
-                    s.setSocket(socket);
-                }
-            }
+            enqueue(socket);
         }
     }
 

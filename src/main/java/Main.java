@@ -5,10 +5,13 @@ import java.net.ServerSocket;
 import java.net.Socket;
 import java.util.LinkedList;
 import java.util.Vector;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ThreadPoolExecutor;
 
 /**
  * Created by kirill on 23.02.16.
  */
+//TODO: .., make
 public class Main {
 
     private static Options options = new Options();
@@ -47,7 +50,8 @@ public class Main {
         int cpus = Integer.parseInt(commandLine.getOptionValue("c", "2"));
         System.out.println(directory + " " + port);
 
-        //ThreadPoolExecutor executor = (ThreadPoolExecutor) Executors.newFixedThreadPool(2 * cpus + 1);
+        ThreadPoolExecutor executor = (ThreadPoolExecutor) Executors.newFixedThreadPool(2 * cpus + 1);
+
         workers = cpus * 2 + 1;
         for (int i = 0; i < workers; ++i) {
             Server s = new Server();
@@ -61,7 +65,6 @@ public class Main {
 
         while (true) {
             Socket socket = serverSocket.accept();
-            //executor.execute(ws);
             enqueue(socket);
         }
     }

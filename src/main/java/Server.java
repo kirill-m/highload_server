@@ -8,9 +8,7 @@ import java.util.LinkedList;
  * Created by kirill on 23.02.16.
  */
 
-//TODO: encode cyrillic
-
-public class Server extends Thread implements Runnable {
+public class Server extends Thread {
 
     private InputStream inputStream;
     private Socket socket;

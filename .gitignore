@@ -4,7 +4,6 @@
 .DS_Store
 /build
 *.class
-*.jar
 
 workspace.xml
 tasks.xml

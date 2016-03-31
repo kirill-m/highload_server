@@ -5,13 +5,11 @@ import java.net.ServerSocket;
 import java.net.Socket;
 import java.util.LinkedList;
 import java.util.Vector;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ThreadPoolExecutor;
 
 /**
- * Created by kirill on 23.02.16.
+ * Created by kirill on 23.02.16
  */
-//TODO: .., make
+//TODO: make
 public class Main {
 
     private static Options options = new Options();
@@ -26,17 +24,17 @@ public class Main {
 
     static Vector<Server> threads = new Vector<>();
 
-    static LinkedList<Socket> requests = new LinkedList<>();
+    static final LinkedList<Socket> requests = new LinkedList<>();
 
     public static final int DEFAULT_PORT = 8080;
 
-    static String directory = "/Users/kirill/IdeaProjects/highload/src/static";
+    static String directory = System.getProperty("user.dir");
 
     static void enqueue(Socket s) {
         synchronized (requests) {
             requests.add(s);
             requests.notify();
-            System.out.println("QUEUE SIZE " + requests.size());
+            //System.out.println("QUEUE SIZE " + requests.size());
         }
     }
 
@@ -50,7 +48,7 @@ public class Main {
         int cpus = Integer.parseInt(commandLine.getOptionValue("c", "2"));
         System.out.println(directory + " " + port);
 
-        ThreadPoolExecutor executor = (ThreadPoolExecutor) Executors.newFixedThreadPool(2 * cpus + 1);
+        //ThreadPoolExecutor executor = (ThreadPoolExecutor) Executors.newFixedThreadPool(2 * cpus + 1);
 
         workers = cpus * 2 + 1;
         for (int i = 0; i < workers; ++i) {
@@ -59,7 +57,6 @@ public class Main {
             //(new Thread(s, "worker #"+i)).start();
             threads.addElement(s);
         }
-
 
         ServerSocket serverSocket = new ServerSocket(port);
 

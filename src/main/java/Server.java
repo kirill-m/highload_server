@@ -5,7 +5,7 @@ import java.util.Date;
 import java.util.LinkedList;
 
 /**
- * Created by kirill on 23.02.16.
+ * Created by kirill on 23.02.16
  */
 
 public class Server extends Thread {
@@ -14,7 +14,8 @@ public class Server extends Thread {
     private Socket socket;
     private OutputStream outputStream;
     private String requestType;
-    private LinkedList<Socket> requests = Main.requests;
+    private final LinkedList<Socket> requests = Main.requests;
+
     @Override
     public synchronized void run() {
 
@@ -86,7 +87,7 @@ public class Server extends Thread {
 
     private String readInput() throws IOException {
         BufferedReader bufferedReader = new BufferedReader(new InputStreamReader(inputStream));
-        String str = null;
+        String str;
         StringBuilder sb = new StringBuilder();
         while(true) {
             str = bufferedReader.readLine();
@@ -134,7 +135,7 @@ public class Server extends Thread {
         String extension = contentName.substring(contentName.lastIndexOf(".") + 1);
 
         path += contentName;
-        System.out.println(path);
+
         try {
             content = getContent(path, extension);
             if (content == null) {
@@ -149,8 +150,10 @@ public class Server extends Thread {
         } catch (IOException e) {
             e.printStackTrace();
         } finally {
-            outputStream.write(header);
-            if (requestType.equals("GET"))
+            if (header != null) {
+                outputStream.write(header);
+            }
+            if (requestType.equals("GET") && content != null)
                 outputStream.write(content);
             outputStream.flush();
             socket.close();
@@ -159,8 +162,8 @@ public class Server extends Thread {
     }
 
     private void writeOutputPost() throws IOException {
-        byte[] content = null;
-        byte[] header = null;
+        byte[] content;
+        byte[] header;
         content = "<!DOCTYPE html><html><head></head><body><h1>Error 405. Method Not allowed</h1></body></html>".getBytes();
         header =  ("HTTP/1.1 405 Method Not Allowed\r\n" +
                 "Server: MyServer\r\n"+
@@ -173,9 +176,9 @@ public class Server extends Thread {
     }
 
     private String getPath(String s) throws UnsupportedEncodingException {
-        String result = null;
-        int i = 0;
-        int pathIndex = 0;
+        String result;
+        int i;
+        int pathIndex;
         if (requestType.equals("GET"))
             pathIndex = "GET ".length();
         else
@@ -226,14 +229,13 @@ public class Server extends Thread {
             case "swf":
                 contentType = "application/x-shockwave-flash";
         }
-        String result = "HTTP/1.1 200 OK\r\n" +
+
+        return "HTTP/1.1 200 OK\r\n" +
                 "Date:" + new Date() + "\r\n" +
                 "Server: MyServer\r\n"+
                 "Content-Type: " + contentType + "\r\n" +
                 "Content-Length: " + length + "\r\n" +
                 "Connection: close\r\n\r\n";
-
-        return result;
 
     }
 

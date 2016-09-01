@@ -1,8 +1,10 @@
+package ru.matveev.highload;
+
 import java.io.*;
 import java.net.Socket;
 import java.net.URLDecoder;
 import java.util.Date;
-import java.util.LinkedList;
+import java.util.Queue;
 
 /**
  * Created by kirill on 23.02.16
@@ -10,100 +12,74 @@ import java.util.LinkedList;
 
 public class Server extends Thread {
 
-    private InputStream inputStream;
-    private Socket socket;
+    private final String directory;
     private OutputStream outputStream;
     private String requestType;
-    private final LinkedList<Socket> requests = Main.requests;
+    private final Queue<Socket> requests = Main.requests;
+
+    public Server(String directory) {
+        this.directory = directory;
+    }
 
     @Override
     public synchronized void run() {
-
         while(true) {
-
-            synchronized (requests) {
-                if (requests.isEmpty()) {
+            synchronized (Main.LOCK) {
+                Socket socket = requests.poll();
+                while(socket == null) {
                     try {
-                        requests.wait();
+                        Main.LOCK.wait();
+                        socket = requests.poll();
                     } catch (InterruptedException e) {
                         e.printStackTrace();
                     }
-                } else {
-                    if (socket == null) {
-                        Socket skt = requests.removeFirst();
-                        this.setSocket(skt);
+                }
 
-                        try {
-                            this.inputStream = socket.getInputStream();
-                            this.outputStream = socket.getOutputStream();
-                            String input = readInput();
-                            if (!input.equals("null")) {
-                                requestType = getRequestType(input);
-                                switch (requestType) {
-                                    case "HEAD":
-                                    case "GET": {
-                                        String path = getPath(input);
-                                        writeOutput(path);
-                                        break;
-                                    }
-                                    case "POST":
-                                        writeOutputPost();
-                                }
+                try {
+                    this.outputStream = socket.getOutputStream();
+                    String input = readInput(socket.getInputStream());
+                    System.out.println("INPUT: " + input);
+                    if (!input.equals("null")) {
+                        System.out.println("INPUT2: " + input);
+                        requestType = getRequestType(input);
+                        switch (requestType) {
+                            case "HEAD":
+                            case "GET": {
+                                writeOutput(input, socket);
+                                break;
                             }
-                            this.setSocketNull();
-                        } catch (IOException e) {
-                            e.printStackTrace();
+                            case "POST":
+                                writeOutputPost(socket);
                         }
                     }
-
+                } catch (IOException e) {
+                    e.printStackTrace();
                 }
+
             }
 
         }
 
     }
 
-    public Server(Socket socket) throws IOException {
-        this.socket = socket;
-        this.inputStream = socket.getInputStream();
-        this.outputStream = socket.getOutputStream();
-    }
 
-    public Server() throws IOException {
-        socket = null;
-//        this.inputStream = socket.getInputStream();
-//        this.outputStream = socket.getOutputStream();
-    }
-
-    synchronized void setSocket(Socket socket) {
-        this.socket = socket;
-        //notify();
-    }
-
-    synchronized void setSocketNull() {
-        this.socket = null;
-        //notify();
-    }
-
-    private String readInput() throws IOException {
-        BufferedReader bufferedReader = new BufferedReader(new InputStreamReader(inputStream));
+    private String readInput(InputStream inputStream) throws IOException {
+        BufferedReader reader = new BufferedReader(new InputStreamReader(inputStream));
         String str;
         StringBuilder sb = new StringBuilder();
-        while(true) {
-            str = bufferedReader.readLine();
+        while((str = reader.readLine()) != null) {
             sb.append(str);
-            if(str == null || str.length() == 0) {
-                break;
-            }
         }
         return sb.toString();
     }
 
-    private void writeOutput(String contentName) throws IOException {
+    private void writeOutput(String input, Socket socket) throws IOException {
         byte[] content = null;
         byte[] header = null;
 
-        String path = Main.directory;
+        String contentName = getPath(input);
+
+        String path = directory;
 
         File file = new File(path+contentName);
         if (file.isDirectory()) {
@@ -116,7 +92,7 @@ public class Server extends Thread {
             if (!file.isDirectory() && !file.exists()) {
                 content = "<!DOCTYPE html><html><head></head><body><h1>Error 403. Forbidden</h1></body></html>".getBytes();
                 header =  ("HTTP/1.1 403 Forbidden\r\n" +
-                        "Server: MyServer\r\n"+
+                        "ru.matveev.highload.Server: MyServer\r\n"+
                         "Content-Type: text/html\r\n" +
                         "Connection: close\r\n\r\n").getBytes();
                 outputStream.write(header);
@@ -141,7 +117,7 @@ public class Server extends Thread {
             if (content == null) {
                 content = "<!DOCTYPE html><html><head></head><body><h1>Error 404. Not found</h1></body></html>".getBytes();
                 header =  ("HTTP/1.1 404 Not Found\r\n" +
-                        "Server: MyServer\r\n"+
+                        "ru.matveev.highload.Server: MyServer\r\n"+
                         "Content-Type: text/html\r\n" +
                         "Connection: close\r\n\r\n").getBytes();
             } else {
@@ -161,12 +137,12 @@ public class Server extends Thread {
 
     }
 
-    private void writeOutputPost() throws IOException {
+    private void writeOutputPost(Socket socket) throws IOException {
         byte[] content;
         byte[] header;
         content = "<!DOCTYPE html><html><head></head><body><h1>Error 405. Method Not allowed</h1></body></html>".getBytes();
         header =  ("HTTP/1.1 405 Method Not Allowed\r\n" +
-                "Server: MyServer\r\n"+
+                "ru.matveev.highload.Server: MyServer\r\n"+
                 "Content-Type: text/html\r\n" +
                 "Connection: close\r\n\r\n").getBytes();
         outputStream.write(header);
@@ -232,7 +208,7 @@ public class Server extends Thread {
 
         return "HTTP/1.1 200 OK\r\n" +
                 "Date:" + new Date() + "\r\n" +
-                "Server: MyServer\r\n"+
+                "ru.matveev.highload.Server: MyServer\r\n"+
                 "Content-Type: " + contentType + "\r\n" +
                 "Content-Length: " + length + "\r\n" +
                 "Connection: close\r\n\r\n";
@@ -281,7 +257,7 @@ public class Server extends Thread {
         return content;
     }
 
-    private String  getRequestType(String request) {
+    private String getRequestType(String request) {
         return request.substring(0, request.indexOf(' '));
     }
 

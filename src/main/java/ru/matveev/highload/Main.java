@@ -1,16 +1,20 @@
+package ru.matveev.highload;
+
 import org.apache.commons.cli.*;
 
 import java.io.IOException;
 import java.net.ServerSocket;
 import java.net.Socket;
-import java.util.LinkedList;
-import java.util.Vector;
+import java.util.ArrayDeque;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Queue;
 
 /**
- * Created by kirill on 23.02.16
+ * Created by kirill on 01.09.16
  */
-//TODO: make
 public class Main {
+    public static final Object LOCK = new Object();
 
     private static Options options = new Options();
 
@@ -22,9 +26,9 @@ public class Main {
 
     static int workers = 5;
 
-    static Vector<Server> threads = new Vector<>();
+    static List<Server> threads = new ArrayList<>();
 
-    static final LinkedList<Socket> requests = new LinkedList<>();
+    static final Queue<Socket> requests = new ArrayDeque<>();
 
     public static final int DEFAULT_PORT = 8080;
 
@@ -33,8 +37,9 @@ public class Main {
     static void enqueue(Socket s) {
         synchronized (requests) {
             requests.add(s);
-            requests.notify();
-            //System.out.println("QUEUE SIZE " + requests.size());
+            synchronized (LOCK) {
+                LOCK.notify();
+            }
         }
     }
 
@@ -42,20 +47,16 @@ public class Main {
 
         CommandLineParser parser = new DefaultParser();
         CommandLine commandLine = parser.parse(options, args);
-
         directory = commandLine.getOptionValue("r", directory);
         int port = Integer.parseInt(commandLine.getOptionValue("p", String.valueOf(DEFAULT_PORT)));
         int cpus = Integer.parseInt(commandLine.getOptionValue("c", "2"));
         System.out.println(directory + " " + port);
 
-        //ThreadPoolExecutor executor = (ThreadPoolExecutor) Executors.newFixedThreadPool(2 * cpus + 1);
-
         workers = cpus * 2 + 1;
         for (int i = 0; i < workers; ++i) {
-            Server s = new Server();
+            Server s = new Server(directory);
             s.start();
-            //(new Thread(s, "worker #"+i)).start();
-            threads.addElement(s);
+            threads.add(s);
         }
 
         ServerSocket serverSocket = new ServerSocket(port);

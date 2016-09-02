@@ -23,10 +23,10 @@ public class Server extends Thread {
 
     @Override
     public synchronized void run() {
-        while(true) {
+        while (true) {
             synchronized (Main.LOCK) {
                 Socket socket = requests.poll();
-                while(socket == null) {
+                while (socket == null) {
                     try {
                         Main.LOCK.wait();
                         socket = requests.poll();
@@ -62,12 +62,11 @@ public class Server extends Thread {
 
     }
 
-
     private String readInput(InputStream inputStream) throws IOException {
         BufferedReader reader = new BufferedReader(new InputStreamReader(inputStream));
         String str;
         StringBuilder sb = new StringBuilder();
-        while((str = reader.readLine()) != null) {
+        while ((str = reader.readLine()) != null) {
             sb.append(str);
         }
         return sb.toString();
@@ -81,18 +80,18 @@ public class Server extends Thread {
 
         String path = directory;
 
-        File file = new File(path+contentName);
+        File file = new File(path + contentName);
         if (file.isDirectory()) {
-            if (contentName.charAt(contentName.length()-1) != '/') {
+            if (contentName.charAt(contentName.length() - 1) != '/') {
                 contentName += "/index.html";
-            }else{
+            } else {
                 contentName += "index.html";
             }
-            file = new File(path+contentName);
+            file = new File(path + contentName);
             if (!file.isDirectory() && !file.exists()) {
                 content = "<!DOCTYPE html><html><head></head><body><h1>Error 403. Forbidden</h1></body></html>".getBytes();
-                header =  ("HTTP/1.1 403 Forbidden\r\n" +
-                        "ru.matveev.highload.Server: MyServer\r\n"+
+                header = ("HTTP/1.1 403 Forbidden\r\n" +
+                        "Server: MyServer\r\n" +
                         "Content-Type: text/html\r\n" +
                         "Connection: close\r\n\r\n").getBytes();
                 outputStream.write(header);
@@ -103,7 +102,7 @@ public class Server extends Thread {
                 return;
             }
         } else {
-            if (contentName.charAt(contentName.length()-1) == '/') {
+            if (contentName.charAt(contentName.length() - 1) == '/') {
                 contentName = contentName.substring(0, contentName.length() - 1);
             }
         }
@@ -116,8 +115,8 @@ public class Server extends Thread {
             content = getContent(path, extension);
             if (content == null) {
                 content = "<!DOCTYPE html><html><head></head><body><h1>Error 404. Not found</h1></body></html>".getBytes();
-                header =  ("HTTP/1.1 404 Not Found\r\n" +
-                        "ru.matveev.highload.Server: MyServer\r\n"+
+                header = ("HTTP/1.1 404 Not Found\r\n" +
+                        "Server: MyServer\r\n" +
                         "Content-Type: text/html\r\n" +
                         "Connection: close\r\n\r\n").getBytes();
             } else {
@@ -141,8 +140,8 @@ public class Server extends Thread {
         byte[] content;
         byte[] header;
         content = "<!DOCTYPE html><html><head></head><body><h1>Error 405. Method Not allowed</h1></body></html>".getBytes();
-        header =  ("HTTP/1.1 405 Method Not Allowed\r\n" +
-                "ru.matveev.highload.Server: MyServer\r\n"+
+        header = ("HTTP/1.1 405 Method Not Allowed\r\n" +
+                "Server: MyServer\r\n" +
                 "Content-Type: text/html\r\n" +
                 "Connection: close\r\n\r\n").getBytes();
         outputStream.write(header);
@@ -167,11 +166,11 @@ public class Server extends Thread {
         result = s.substring(pathIndex, i);
 
         if (result.indexOf('?') != -1) {
-            result = result.substring(0,result.indexOf('?'));
+            result = result.substring(0, result.indexOf('?'));
         }
         result = URLDecoder.decode(result, "utf-8");
-        if (result.indexOf('.') == -1){
-            if (result.charAt(result.length()-1) != '/')
+        if (result.indexOf('.') == -1) {
+            if (result.charAt(result.length() - 1) != '/')
                 result += "/";
         }
         return result;
@@ -208,7 +207,7 @@ public class Server extends Thread {
 
         return "HTTP/1.1 200 OK\r\n" +
                 "Date:" + new Date() + "\r\n" +
-                "ru.matveev.highload.Server: MyServer\r\n"+
+                "Server: MyServer\r\n" +
                 "Content-Type: " + contentType + "\r\n" +
                 "Content-Length: " + length + "\r\n" +
                 "Connection: close\r\n\r\n";
@@ -217,7 +216,7 @@ public class Server extends Thread {
 
     private byte[] getContent(String path, String extension) throws IOException {
         File f = new File(path);
-        if(!f.exists()) {
+        if (!f.exists()) {
             return null;
         }
         byte[] content = null;
@@ -235,7 +234,7 @@ public class Server extends Thread {
                 InputStream inputStream = null;
                 BufferedInputStream bufferedInputStream = null;
 
-                try{
+                try {
                     inputStream = new FileInputStream(path);
                     bufferedInputStream = new BufferedInputStream(inputStream);
 
@@ -244,12 +243,12 @@ public class Server extends Thread {
 
                     bufferedInputStream.read(content);
 
-                }catch(Exception e){
+                } catch (Exception e) {
                     e.printStackTrace();
-                }finally{
-                    if(inputStream!=null)
+                } finally {
+                    if (inputStream != null)
                         inputStream.close();
-                    if(bufferedInputStream!=null)
+                    if (bufferedInputStream != null)
                         bufferedInputStream.close();
                 }
             }

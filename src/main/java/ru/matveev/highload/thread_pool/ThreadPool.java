@@ -1,4 +1,4 @@
-package ru.matveev.highload;
+package ru.matveev.highload.thread_pool;
 
 import java.net.Socket;
 
@@ -8,5 +8,5 @@ import java.net.Socket;
 public interface ThreadPool {
     void execute(Socket socket);
 
-    void start(int maxWorkers);
+    void start();
 }
